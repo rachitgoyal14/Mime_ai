@@ -9,7 +9,8 @@
 
 
 @theme {
-  --color-midnight: #253238;
+  --color-midnight: #0d1117;
+  --font-sans: var(--font-inter), 'Inter', sans-serif;
 }
 
 html {
@@ -136,7 +137,12 @@ html {
   box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
 }
 
-/* Three.js container styles */
+/* Three.js container — let it fill its parent fully */
 canvas {
-  border-radius: 8px;
+  display: block;
+  border-radius: 0;
+}
+
+.font-sans {
+  font-family: var(--font-sans);
 }

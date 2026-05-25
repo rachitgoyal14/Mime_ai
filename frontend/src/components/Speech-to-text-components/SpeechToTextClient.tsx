@@ -45,9 +45,13 @@ export default function SpeechToTextClient() {
   const [wordStream, setWordStream] = useState<string[]>([]);
   const [DjangoData, setDjangodata] = useState<string[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isDone, setIsDone] = useState(false);
   const [processing, setIsProcessing] = useState(false);
+  const [currentWord, setCurrentWord] = useState("");
+  const [wordIdx, setWordIdx] = useState(0);
 
   const [isThreeJSInitialized, setIsThreeJSInitialized] = useState(false);
+  const cleanupRef = useRef<(() => void) | null>(null);
   // tracking words sent to backend
   const sentWordsRef = useRef<Set<string>>(new Set());
   console.log(DjangoData);
@@ -93,7 +97,8 @@ export default function SpeechToTextClient() {
     const initializeThreeJS = () => {
       try {
         console.log("Initializing Three.js...");
-        NewThree("label", "container");
+        const cleanup = NewThree("label", "container");
+        cleanupRef.current = cleanup || null;
         setIsThreeJSInitialized(true);
         console.log("Three.js initialized successfully");
       } catch (error) {
@@ -105,24 +110,29 @@ export default function SpeechToTextClient() {
     initializeThreeJS();
 
     return () => {
-      // cleanup();
+      cleanupRef.current?.();
       setIsThreeJSInitialized(false);
     };
   }, []);
 
   useEffect(() => {
-    const SendingWord = () => {
-      if (DjangoData.length > 0) {
-        updateWordList(DjangoData);
-        setIsPlaying(true);
+    if (DjangoData.length === 0) return;
+    setIsPlaying(true);
+    setIsDone(false);
+    setWordIdx(0);
+    setCurrentWord(DjangoData[0] || "");
+
+    updateWordList(
+      DjangoData,
+      (word: string, idx: number) => {
+        setCurrentWord(word);
+        setWordIdx(idx);
+      },
+      () => {
+        setIsPlaying(false);
+        setIsDone(true);
       }
-    };
-
-    const timer = setTimeout(SendingWord, 200);
-
-    return () => {
-      clearTimeout(timer);
-    };
+    );
   }, [DjangoData]);
 
   useEffect(() => {
@@ -158,8 +168,9 @@ export default function SpeechToTextClient() {
       formData.append("category", "text");
       formData.append("text", word);
 
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const response = await axios.post(
-        "https://mime-ai.onrender.com/api/process/",
+        `${backendUrl}/api/process/`,
         formData
       );
 
@@ -432,14 +443,25 @@ export default function SpeechToTextClient() {
                       Currently Displaying
                     </span>
                   </div>
-                  {/* ORIGINAL LABEL DIV - UNTOUCHED */}
+                  {/* ORIGINAL LABEL DIV - pure DOM target, Three.js writes textContent */}
                   <h1
                     id="label"
-                    className="text-3xl md:text-2xl font-bold text-white tracking-wider"
-                  >
-                    {isThreeJSInitialized ? "READY" : "Loading..."}
-                  </h1>
-                  <div className="w-24 h-1 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 rounded-full mx-auto mt-3 animate-pulse" />
+                    className="text-3xl md:text-2xl font-black tracking-[0.15em] bg-gradient-to-r from-cyan-300 via-blue-300 to-violet-400 bg-clip-text text-transparent min-h-[2rem]"
+                  />
+                  <div className="w-24 h-0.5 bg-gradient-to-r from-cyan-400 via-blue-400 to-violet-500 rounded-full mx-auto mt-2 opacity-60" />
+                  {DjangoData.length > 0 && (
+                    <div className="mt-2 px-4">
+                      <div className="h-1 bg-white/8 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-cyan-500 to-violet-500 rounded-full transition-all duration-500"
+                          style={{ width: `${DjangoData.length > 0 ? ((wordIdx) / DjangoData.length) * 100 : 0}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {isDone && (
+                    <p className="text-emerald-400 text-xs font-medium mt-1 tracking-wide">✓ Done</p>
+                  )}
                 </div>
               </div>
 

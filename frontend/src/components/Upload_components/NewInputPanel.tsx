@@ -94,8 +94,9 @@ export default function NewInputPanel({setData}: ChildProps) {
         console.log(`${key}:`, value);
       }
 
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const response = await axios.post(
-        "https://mime-ai.onrender.com/api/process/",
+        `${backendUrl}/api/process/`,
         formData
       );
 

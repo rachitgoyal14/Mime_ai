@@ -13,6 +13,10 @@
 # testing
 /coverage
 
+backend/venv/
+
+.codectx_cache/
+
 # next.js
 /.next/
 /out/
